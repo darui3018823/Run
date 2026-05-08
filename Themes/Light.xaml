@@ -1,0 +1,10 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="WindowBg"    Color="#F2F2F2"/>
+    <SolidColorBrush x:Key="TextBrush"   Color="#000000"/>
+    <SolidColorBrush x:Key="InputBg"     Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="InputBorder" Color="#AAAAAA"/>
+    <SolidColorBrush x:Key="ButtonBg"    Color="#E1E1E1"/>
+    <SolidColorBrush x:Key="ButtonBorder" Color="#AAAAAA"/>
+    <SolidColorBrush x:Key="ButtonHover" Color="#CCCCCC"/>
+</ResourceDictionary>
