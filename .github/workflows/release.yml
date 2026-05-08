@@ -1,0 +1,28 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.x
+
+      - name: Publish
+        run: dotnet publish -c Release -o publish --nologo -v q
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: publish/Run.exe
+          generate_release_notes: true
