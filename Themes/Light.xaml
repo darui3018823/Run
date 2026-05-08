@@ -10,6 +10,105 @@
     <SolidColorBrush x:Key="ButtonBorder" Color="#AAAAAA"/>
     <SolidColorBrush x:Key="AccentBrush"  Color="#0067C0"/>
 
+    <!-- ComboBox: full ControlTemplate so the popup uses our themed background -->
+    <Style TargetType="{x:Type ComboBox}">
+        <Setter Property="Background"      Value="{StaticResource InputBg}"/>
+        <Setter Property="Foreground"      Value="{StaticResource TextBrush}"/>
+        <Setter Property="BorderBrush"     Value="{StaticResource InputBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding"         Value="4,2"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility"   Value="Auto"/>
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ComboBox}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition MinWidth="{DynamicResource {x:Static SystemParameters.VerticalScrollBarWidthKey}}" Width="0"/>
+                        </Grid.ColumnDefinitions>
+                        <!-- Control chrome border -->
+                        <Border x:Name="border"
+                                Grid.ColumnSpan="2"
+                                Background="{StaticResource InputBg}"
+                                BorderBrush="{StaticResource InputBorder}"
+                                BorderThickness="1"/>
+                        <!-- Divider + chevron arrow (non-interactive overlay) -->
+                        <Border Grid.Column="1"
+                                BorderBrush="{StaticResource InputBorder}"
+                                BorderThickness="1,0,0,0"
+                                IsHitTestVisible="False">
+                            <Path Data="F1 M 0,0 L 2.667,2.66665 L 5.3334,0 L 5.3334,-1.78168 L 2.6667,0.88501 L0,-1.78168 L0,0 Z"
+                                  Fill="{StaticResource TextBrush}"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"/>
+                        </Border>
+                        <!-- Transparent click target for opening dropdown -->
+                        <ToggleButton Grid.ColumnSpan="2"
+                                      Focusable="False"
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                      ClickMode="Press">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="{x:Type ToggleButton}">
+                                    <Border Background="Transparent"/>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+                        <!-- Editable text box -->
+                        <TextBox x:Name="PART_EditableTextBox"
+                                 Grid.Column="0"
+                                 Background="Transparent"
+                                 Foreground="{TemplateBinding Foreground}"
+                                 CaretBrush="{TemplateBinding Foreground}"
+                                 BorderThickness="0"
+                                 Margin="4,2,0,2"
+                                 VerticalAlignment="Center"
+                                 IsReadOnly="{Binding IsReadOnly, RelativeSource={RelativeSource TemplatedParent}}">
+                            <TextBox.Template>
+                                <ControlTemplate TargetType="{x:Type TextBox}">
+                                    <ScrollViewer x:Name="PART_ContentHost"
+                                                 Focusable="False"
+                                                 HorizontalScrollBarVisibility="Hidden"
+                                                 VerticalScrollBarVisibility="Hidden"/>
+                                </ControlTemplate>
+                            </TextBox.Template>
+                        </TextBox>
+                        <!-- Dropdown popup with themed background -->
+                        <Popup x:Name="PART_Popup"
+                               Grid.ColumnSpan="2"
+                               AllowsTransparency="True"
+                               IsOpen="{TemplateBinding IsDropDownOpen}"
+                               Placement="Bottom">
+                            <Border Background="{StaticResource InputBg}"
+                                    BorderBrush="{StaticResource InputBorder}"
+                                    BorderThickness="1"
+                                    MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                    MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                <ScrollViewer x:Name="DropDownScrollViewer">
+                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"
+                                                   SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsDropDownOpen" Value="True">
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ComboBox dropdown items -->
     <Style TargetType="{x:Type ComboBoxItem}">
         <Setter Property="Background" Value="{StaticResource InputBg}"/>

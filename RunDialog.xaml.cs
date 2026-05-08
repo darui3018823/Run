@@ -87,8 +87,8 @@ public partial class RunDialog : Window
             if (EditBox is { } tb)
             {
                 tb.Background  = (System.Windows.Media.Brush)FindResource("InputBg");
-                tb.Foreground  = System.Windows.Media.Brushes.Black;
-                tb.CaretBrush  = System.Windows.Media.Brushes.Black;
+                tb.Foreground  = (System.Windows.Media.Brush)FindResource("TextBrush");
+                tb.CaretBrush  = (System.Windows.Media.Brush)FindResource("TextBrush");
                 tb.SelectAll();
             }
         });
