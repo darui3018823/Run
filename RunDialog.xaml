@@ -3,28 +3,29 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Run"
         SizeToContent="Height"
-        Width="430"
+        Width="450"
         ResizeMode="NoResize"
-        WindowStartupLocation="CenterScreen"
+        WindowStartupLocation="Manual"
         ShowInTaskbar="False"
         Topmost="True"
         Background="{DynamicResource WindowBg}"
         Loaded="Window_Loaded"
         KeyDown="Window_KeyDown">
-    <Grid Margin="14,14,14,10">
+    <Grid Margin="12,12,12,10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="10"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="14"/>
+            <RowDefinition Height="12"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Header: icon + description -->
         <DockPanel Grid.Row="0">
             <Image x:Name="RunIcon" Width="32" Height="32"
-                   DockPanel.Dock="Left" Margin="0,0,12,0"
-                   VerticalAlignment="Top" SnapsToDevicePixels="True"/>
+                   DockPanel.Dock="Left" Margin="0,2,10,0"
+                   VerticalAlignment="Top" SnapsToDevicePixels="True"
+                   RenderOptions.BitmapScalingMode="HighQuality"/>
             <TextBlock Text="Type the name of a program, folder, document, or Internet resource, and Windows will open it for you."
                        TextWrapping="Wrap"
                        VerticalAlignment="Center"
@@ -50,20 +51,9 @@
 
         <!-- Buttons -->
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="OK"     Width="80" Margin="0,0,6,0" Click="OK_Click"
-                    Background="{DynamicResource ButtonBg}"
-                    BorderBrush="{DynamicResource ButtonBorder}"
-                    Foreground="{DynamicResource TextBrush}"
-                    IsDefault="True"/>
-            <Button Content="Cancel" Width="80" Margin="0,0,6,0" Click="Cancel_Click"
-                    Background="{DynamicResource ButtonBg}"
-                    BorderBrush="{DynamicResource ButtonBorder}"
-                    Foreground="{DynamicResource TextBrush}"
-                    IsCancel="True"/>
-            <Button Content="Browse..." Width="90" Click="Browse_Click"
-                    Background="{DynamicResource ButtonBg}"
-                    BorderBrush="{DynamicResource ButtonBorder}"
-                    Foreground="{DynamicResource TextBrush}"/>
+            <Button Content="OK"      Width="80" Margin="0,0,6,0" Click="OK_Click"     IsDefault="True"/>
+            <Button Content="Cancel"  Width="80" Margin="0,0,6,0" Click="Cancel_Click" IsCancel="True"/>
+            <Button Content="Browse..." Width="90" Click="Browse_Click"/>
         </StackPanel>
     </Grid>
 </Window>

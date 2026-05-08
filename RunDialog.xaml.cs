@@ -1,12 +1,12 @@
 using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using TextBox = System.Windows.Controls.TextBox;
 using System.Windows.Media.Imaging;
-using Imaging = System.Windows.Interop.Imaging;
 using MessageBox = System.Windows.MessageBox;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using TextBox = System.Windows.Controls.TextBox;
 
 namespace Run;
 
@@ -26,17 +26,29 @@ public partial class RunDialog : Window
 
     private void SetDialogIcon()
     {
-        var shell32 = System.IO.Path.Combine(
+        var shell32 = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.System), "shell32.dll");
+
+        // Index 24 = monitor/PC icon in Windows 11 shell32.dll
         var large = new IntPtr[1];
-        uint count = NativeMethods.ExtractIconEx(shell32, 1, large, null, 1);
+        uint count = NativeMethods.ExtractIconEx(shell32, 24, large, null, 1);
+        if (count == 0 || large[0] == IntPtr.Zero)
+        {
+            // Fallback: try index 3 (application icon)
+            count = NativeMethods.ExtractIconEx(shell32, 3, large, null, 1);
+        }
+
         if (count > 0 && large[0] != IntPtr.Zero)
         {
             try
             {
-                var src = Imaging.CreateBitmapSourceFromHIcon(
-                    large[0], Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-                RunIcon.Source = src;
+                // IconBitmapDecoder preserves full alpha transparency (unlike CreateBitmapSourceFromHIcon)
+                using var icon = System.Drawing.Icon.FromHandle(large[0]);
+                using var ms = new MemoryStream();
+                icon.Save(ms);
+                ms.Position = 0;
+                var decoder = new IconBitmapDecoder(ms, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                RunIcon.Source = decoder.Frames[0];
             }
             finally
             {
@@ -50,6 +62,11 @@ public partial class RunDialog : Window
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        // Position: bottom-left of work area, just above taskbar
+        var work = SystemParameters.WorkArea;
+        Left = work.Left + 40;
+        Top  = work.Bottom - ActualHeight - 20;
+
         _historyIndex = -1;
         CommandBox.ItemsSource = _history.Items;
         CommandBox.Focus();
@@ -76,8 +93,7 @@ public partial class RunDialog : Window
                 CommandBox.Text = items[_historyIndex];
                 Dispatcher.BeginInvoke(() =>
                 {
-                    if (EditBox is { } tb)
-                        tb.CaretIndex = tb.Text.Length;
+                    if (EditBox is { } tb) tb.CaretIndex = tb.Text.Length;
                 });
             }
             e.Handled = true;
@@ -88,8 +104,7 @@ public partial class RunDialog : Window
             CommandBox.Text = _historyIndex < 0 ? "" : _history.Items[_historyIndex];
             Dispatcher.BeginInvoke(() =>
             {
-                if (EditBox is { } tb && tb.Text.Length > 0)
-                    tb.CaretIndex = tb.Text.Length;
+                if (EditBox is { } tb && tb.Text.Length > 0) tb.CaretIndex = tb.Text.Length;
             });
             e.Handled = true;
         }
@@ -122,8 +137,7 @@ public partial class RunDialog : Window
             CommandBox.Text = dlg.FileName;
             Dispatcher.BeginInvoke(() =>
             {
-                if (EditBox is { } tb)
-                    tb.CaretIndex = tb.Text.Length;
+                if (EditBox is { } tb) tb.CaretIndex = tb.Text.Length;
             });
         }
     }
@@ -145,7 +159,7 @@ public partial class RunDialog : Window
         }
         catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
         {
-            // UAC cancelled — ignore
+            // UAC cancelled by user
         }
         catch (Exception ex)
         {
