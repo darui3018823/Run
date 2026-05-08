@@ -24,37 +24,46 @@ public partial class RunDialog : Window
         SetDialogIcon();
     }
 
+    private void Window_SourceInitialized(object sender, EventArgs e)
+    {
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        int dark = _darkMode.IsDark ? 1 : 0;
+        NativeMethods.DwmSetWindowAttribute(hwnd, NativeMethods.DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
+    }
+
     private void SetDialogIcon()
     {
-        var shell32 = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.System), "shell32.dll");
-
-        // Index 24 = monitor/PC icon in Windows 11 shell32.dll
-        var large = new IntPtr[1];
-        uint count = NativeMethods.ExtractIconEx(shell32, 24, large, null, 1);
-        if (count == 0 || large[0] == IntPtr.Zero)
+        try
         {
-            // Fallback: try index 3 (application icon)
-            count = NativeMethods.ExtractIconEx(shell32, 3, large, null, 1);
-        }
+            var system = Environment.GetFolderPath(Environment.SpecialFolder.System);
+            var imageres = Path.Combine(system, "imageres.dll");
+            var shell32  = Path.Combine(system, "shell32.dll");
 
-        if (count > 0 && large[0] != IntPtr.Zero)
-        {
-            try
+            var large = new IntPtr[1];
+            uint count = NativeMethods.ExtractIconEx(imageres, 95, large, null, 1);
+            if (count == 0 || large[0] == IntPtr.Zero)
+                count = NativeMethods.ExtractIconEx(shell32, 3, large, null, 1);
+
+            if (count > 0 && large[0] != IntPtr.Zero)
             {
-                // IconBitmapDecoder preserves full alpha transparency (unlike CreateBitmapSourceFromHIcon)
-                using var icon = System.Drawing.Icon.FromHandle(large[0]);
-                using var ms = new MemoryStream();
-                icon.Save(ms);
-                ms.Position = 0;
-                var decoder = new IconBitmapDecoder(ms, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
-                RunIcon.Source = decoder.Frames[0];
-            }
-            finally
-            {
-                NativeMethods.DestroyIcon(large[0]);
+                try
+                {
+                    using var icon = System.Drawing.Icon.FromHandle(large[0]);
+                    using var bitmap = icon.ToBitmap();
+                    using var ms = new MemoryStream();
+                    bitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                    ms.Position = 0;
+                    var frame = BitmapFrame.Create(ms, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                    RunIcon.Source = frame;
+                    Icon = frame;
+                }
+                finally
+                {
+                    NativeMethods.DestroyIcon(large[0]);
+                }
             }
         }
+        catch { }
     }
 
     private TextBox? EditBox =>
@@ -64,13 +73,41 @@ public partial class RunDialog : Window
     {
         // Position: bottom-left of work area, just above taskbar
         var work = SystemParameters.WorkArea;
-        Left = work.Left + 40;
-        Top  = work.Bottom - ActualHeight - 20;
+        Left = work.Left + 10;
+        Top  = work.Bottom - ActualHeight - 8;
 
         _historyIndex = -1;
         CommandBox.ItemsSource = _history.Items;
+
+        ForceForeground();
         CommandBox.Focus();
-        Dispatcher.BeginInvoke(() => EditBox?.SelectAll());
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (EditBox is { } tb)
+            {
+                tb.Background  = (System.Windows.Media.Brush)FindResource("InputBg");
+                tb.Foreground  = System.Windows.Media.Brushes.Black;
+                tb.CaretBrush  = System.Windows.Media.Brushes.Black;
+                tb.SelectAll();
+            }
+        });
+    }
+
+    private void ForceForeground()
+    {
+        var hwnd   = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        var fgHwnd = NativeMethods.GetForegroundWindow();
+        var fgTid  = NativeMethods.GetWindowThreadProcessId(fgHwnd, IntPtr.Zero);
+        var ourTid = NativeMethods.GetCurrentThreadId();
+
+        if (fgTid != ourTid)
+            NativeMethods.AttachThreadInput(fgTid, ourTid, true);
+
+        NativeMethods.SetForegroundWindow(hwnd);
+
+        if (fgTid != ourTid)
+            NativeMethods.AttachThreadInput(fgTid, ourTid, false);
     }
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
@@ -110,9 +147,17 @@ public partial class RunDialog : Window
         }
         else if (e.Key == Key.Return || e.Key == Key.Enter)
         {
-            bool elevate = (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift))
-                        == (ModifierKeys.Control | ModifierKeys.Shift);
-            Execute(CommandBox.Text, elevate);
+            if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Alt))
+                    == (ModifierKeys.Control | ModifierKeys.Alt))
+            {
+                ExecuteAsSystem(CommandBox.Text);
+            }
+            else
+            {
+                bool elevate = (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift))
+                            == (ModifierKeys.Control | ModifierKeys.Shift);
+                Execute(CommandBox.Text, elevate);
+            }
             e.Handled = true;
         }
     }
@@ -140,6 +185,53 @@ public partial class RunDialog : Window
                 if (EditBox is { } tb) tb.CaretIndex = tb.Text.Length;
             });
         }
+    }
+
+    private void ExecuteAsSystem(string command)
+    {
+        command = command.Trim();
+        if (string.IsNullOrEmpty(command)) return;
+
+        var psexec = FindInPath("psexec.exe") ?? FindInPath("psexec");
+        if (psexec == null)
+        {
+            MessageBox.Show("psexec.exe が見つかりません", "Run", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName        = psexec,
+                Arguments       = $"-s -i {command}",
+                UseShellExecute = true,
+                Verb            = "runas"
+            };
+            System.Diagnostics.Process.Start(psi);
+            _history.AddAndSave(command);
+            Close();
+        }
+        catch (Win32Exception ex) when (ex.NativeErrorCode == 1223) { }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Run", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private static string? FindInPath(string fileName)
+    {
+        var pathVar = Environment.GetEnvironmentVariable("PATH") ?? "";
+        foreach (var dir in pathVar.Split(Path.PathSeparator))
+        {
+            try
+            {
+                var full = Path.Combine(dir.Trim(), fileName);
+                if (File.Exists(full)) return full;
+            }
+            catch { }
+        }
+        return null;
     }
 
     private void Execute(string command, bool elevate)

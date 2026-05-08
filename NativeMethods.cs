@@ -6,10 +6,18 @@ internal static class NativeMethods
 {
     public const int WH_KEYBOARD_LL  = 13;
     public const int WM_KEYDOWN      = 0x0100;
+    public const int WM_KEYUP        = 0x0101;
     public const int WM_SYSKEYDOWN   = 0x0104;
-    public const int VK_R            = 0x52;
-    public const int VK_LWIN         = 0x5B;
-    public const int VK_RWIN         = 0x5C;
+    public const int WM_SYSKEYUP     = 0x0105;
+    public const int  VK_R            = 0x52;
+    public const int  VK_LWIN         = 0x5B;
+    public const int  VK_RWIN         = 0x5C;
+
+    public const uint KEYEVENTF_KEYUP  = 0x0002;
+    public const uint LLKHF_INJECTED   = 0x10;
+
+    [DllImport("user32.dll")]
+    public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, IntPtr dwExtraInfo);
 
     public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
 
@@ -50,4 +58,26 @@ internal static class NativeMethods
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     public static extern uint RegisterWindowMessage(string lpString);
+
+    public const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr lpdwProcessId);
+
+    [DllImport("kernel32.dll")]
+    public static extern uint GetCurrentThreadId();
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetForegroundWindow(IntPtr hWnd);
 }

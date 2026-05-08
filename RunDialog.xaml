@@ -9,6 +9,7 @@
         ShowInTaskbar="False"
         Topmost="True"
         Background="{DynamicResource WindowBg}"
+        SourceInitialized="Window_SourceInitialized"
         Loaded="Window_Loaded"
         KeyDown="Window_KeyDown">
     <Grid Margin="12,12,12,10">

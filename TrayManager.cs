@@ -56,12 +56,21 @@ internal sealed class TrayManager : IDisposable
 
     private static Icon ExtractTrayIcon()
     {
-        var shell32 = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.System), "shell32.dll");
-        var small = new IntPtr[1];
-        uint count = NativeMethods.ExtractIconEx(shell32, 1, null, small, 1);
-        if (count > 0 && small[0] != IntPtr.Zero)
-            return Icon.FromHandle(small[0]);
+        try
+        {
+            var system   = Environment.GetFolderPath(Environment.SpecialFolder.System);
+            var imageres = Path.Combine(system, "imageres.dll");
+            var shell32  = Path.Combine(system, "shell32.dll");
+
+            var small = new IntPtr[1];
+            uint count = NativeMethods.ExtractIconEx(imageres, 95, null, small, 1);
+            if (count == 0 || small[0] == IntPtr.Zero)
+                count = NativeMethods.ExtractIconEx(shell32, 1, null, small, 1);
+
+            if (count > 0 && small[0] != IntPtr.Zero)
+                return Icon.FromHandle(small[0]);
+        }
+        catch { }
         return SystemIcons.Application;
     }
 }
