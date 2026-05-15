@@ -234,14 +234,29 @@ public partial class RunDialog : Window
         return null;
     }
 
+    private static (string exe, string args) SplitCommand(string command)
+    {
+        if (command.StartsWith('"'))
+        {
+            int close = command.IndexOf('"', 1);
+            if (close < 0) return (command, "");
+            return (command[1..close], command[(close + 1)..].TrimStart());
+        }
+        int space = command.IndexOf(' ');
+        return space < 0 ? (command, "") : (command[..space], command[(space + 1)..]);
+    }
+
     private void Execute(string command, bool elevate)
     {
         command = command.Trim();
         if (string.IsNullOrEmpty(command)) return;
         try
         {
-            var psi = new System.Diagnostics.ProcessStartInfo(command)
+            var (exe, args) = SplitCommand(command);
+            var psi = new System.Diagnostics.ProcessStartInfo
             {
+                FileName        = exe,
+                Arguments       = args,
                 UseShellExecute = true
             };
             if (elevate) psi.Verb = "runas";

@@ -32,8 +32,9 @@ public partial class App : Application
         _sink = new MessageSinkWindow(_tray);
         _sink.Show();
 
-        _hook = new KeyboardHook(OnWinR);
-        _hook.Install();
+        _hook = new KeyboardHook(ShowRunDialog);
+        var sinkHwnd = new System.Windows.Interop.WindowInteropHelper(_sink).Handle;
+        _hook.Install(sinkHwnd);
     }
 
     private void OnWinR() => Dispatcher.BeginInvoke(ShowRunDialog);
